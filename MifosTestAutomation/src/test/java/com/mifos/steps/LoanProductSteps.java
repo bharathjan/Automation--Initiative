@@ -22,7 +22,7 @@ public class LoanProductSteps {
 				sheetName);
 	}
 
-	@Then("^I entered the values into product loan from \"([^\"]*)\" Sheet$")
+	@Then("^I entered the values into product from \"([^\"]*)\" Sheet$")
 	public void I_entered_the_values_into_product_loan_from_Sheet_Verified(
 			String sheetName, List<String> excelSheet) throws Throwable {
 		String excelSheetName = excelSheet.get(0).toString();
@@ -30,7 +30,7 @@ public class LoanProductSteps {
 				sheetName);
 	}
 	
-	@Then("^I should see product loan created successfully	from \"([^\"]*)\" Sheet$")
+	@Then("^I should see product created successfully	from \"([^\"]*)\" Sheet$")
 	public void I_should_see_product_loan_created_successfully_from_Sheet(
 			String sheetName, List<String> excelSheet) throws Throwable {
 		String excelSheetName = excelSheet.get(0).toString();

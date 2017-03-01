@@ -36,6 +36,7 @@ import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import com.google.common.base.Function;
+import com.mifos.common.TenantsUtils;
 import com.mifos.testing.framework.data.Resources;
 import com.mifos.testing.framework.webdriver.LazyWebElement;
 import com.mifos.testing.framework.webdriver.WebDriverAwareWebPage;
@@ -58,6 +59,9 @@ public class MifosWebPage extends WebDriverAwareWebPage {
 	public static final String HOME_URL = BASE_URL
 			+ Resources.getInstance().get("homepage.url");
 	public String rowval;
+	public String currentJlgLoanUrl;
+	public String currentCenterUrl;
+	public String currentNewLoanUrl;
 
 	/**
 	 * Gets the resource.
@@ -549,13 +553,7 @@ public class MifosWebPage extends WebDriverAwareWebPage {
 					LazyWebElement locatorElement = getElement(locator, clear);
 					locatorElement.sendKeys(value);
 					Thread.sleep(getResourceKey("wait"));
-					/*switch (type) {
-					case "combobox":
-						locatorElement.sendKeys(Keys.RETURN);
-						break;
-					default:
-						break;
-					}*/
+					
 				} catch (NoSuchElementException exception) {
 					Assert.fail("Could not find the " + key);
 				}
@@ -568,14 +566,36 @@ public class MifosWebPage extends WebDriverAwareWebPage {
 					Thread.sleep(getResourceKey("mediumWait"));
 					
 				}
+				if (key.contains("_wait"))
+                {
+                    Thread.sleep(4000);
+                }
+				if (key.equals("clickoncreateclient_wait")) {
+					By loc = null;
+					loc = getLocator(getResource(key));
+					LazyWebElement ele = getElement(loc);
+					currentJlgLoanUrl = getWebDriver().getCurrentUrl();
+				}
+				if(key.equals("clickonAddGroup_wait")){
+					currentCenterUrl = getWebDriver().getCurrentUrl();					
+				}
+				try {
 				clickButton(getLocator(getResource(key)));
 				Thread.sleep(getResourceKey("wait"));
+				} catch (NoSuchElementException exception) {
+					Assert.fail("Could not find the " + key);
+				}
+				
 				if (key.equals("cash") || key.equals("accrualperiodic")||key.equals("accrualupfront") ) {
 					((JavascriptExecutor) getWebDriver())
 							.executeScript("window.scrollBy(0,250)", "");
 					Thread.sleep(getResourceKey("mediumWait"));
 					
 				}
+				if(key.equals("submitdisburse")||key.equals("NewJLGViewDisburseAccount")){
+					currentNewLoanUrl = getWebDriver().getCurrentUrl();				
+				}
+				
 				
 				break;
 				
@@ -607,26 +627,35 @@ public class MifosWebPage extends WebDriverAwareWebPage {
 			//	clickButton(getLocator(getResource("clickondate")));
 				break;
 			case "dropDown":
-				
-//					By scrollToLocator= null;
-//					scrollToLocator = getLocator(getResource(key));
-////					((JavascriptExecutor)  getWebDriver()).executeScript("arguments[0].scrollIntoView(true);", element1);
-//					WebElement element = getWebDriver().findElement(scrollToLocator);
-//				    int elementPosition = element.getLocation().getY();
-//					String js = String.format("window.scroll(0, %s)", elementPosition-100);
-//					((JavascriptExecutor)getWebDriver()).executeScript(js);
-				
 					clickButton(getLocator(getResource(key)));
 					By locator = null;
 					locator = getLocator(getResource(key + ".input"));
 					waitForElementToBeVisible(locator);
 					LazyWebElement locatorElement = getElement(locator, clear);
 					locatorElement.sendKeys(value + Keys.TAB);
-			//		getElement(getLocator(getResource(key + ".input"))).sendKeys(Keys.TAB);
 		
 				Thread.sleep(getResourceKey("wait"));
 
 				break;
+				
+			case "NavigatePage":
+				if (key.equals("NavigateToCurrentJLG")
+						|| key.equals("NavigateToCurrentJLG1")) {
+					
+					value = currentJlgLoanUrl.split("#/")[1];
+				}
+				if (key.equals("NavigateToLoan")){
+					value = currentNewLoanUrl.split("#/")[1];
+				}
+				if (key.equals("NavigateToCurrentCenterPage")){
+					value = currentCenterUrl.split("#/")[1];
+				}
+					MifosWebPage.navigateToUrl(TenantsUtils.getLocalTenantUrl()+ value);
+					
+					Thread.sleep(getResourceKey("largeWait"));
+					
+				break;
+				
 			case "checkbox":
 				boolean checked = value.equals("checked");
 				LazyWebElement check = getElement(getResource(key));
@@ -648,6 +677,30 @@ public class MifosWebPage extends WebDriverAwareWebPage {
 				}
 
 				break;
+				
+			case "verify":
+				Thread.sleep(2000);
+				try {
+					verifySuccessMessage(key , value);
+					Thread.sleep(getResourceKey("wait"));
+				} catch (NoSuchElementException e) {
+					Assert.fail("Could not find the " + key );
+				}
+				
+				break;
+				
+			case "cssselector":
+				Thread.sleep(2000);
+				String name=null;
+				try {
+					locator =getLocator(getResource(key));
+					name =  getWebDriver().findElement(locator).getAttribute("value");
+					Assert.assertTrue(name.equalsIgnoreCase(value));
+				} catch (AssertionError e) {
+					Assert.fail("Expected: " + value +" Actual: "+name);
+				}
+				
+				break;
 			case "select":
 				
 				if (key.equals("selectdayofthemonthPattern")) {
@@ -662,9 +715,7 @@ public class MifosWebPage extends WebDriverAwareWebPage {
 					Thread.sleep(getResourceKey("wait"));
 				} catch (NoSuchElementException e) {
 					Assert.fail("Could not find the " + key);
-				}
-				/*Assert.assertEquals(value, statusselect
-						.getFirstSelectedOption().getText());*/				
+				}			
 				break;
 			}
 		} catch (Exception e) {
@@ -1206,14 +1257,30 @@ public class MifosWebPage extends WebDriverAwareWebPage {
 	}*/
 
 	public void verifySuccessMessage(String page, String message) {
-//		try {
-
+		try {
+			
+			By locator = null;
+			((JavascriptExecutor) getWebDriver())
+			.executeScript("scroll(0,0);");
+			
+			locator =getLocator(getResource(page));
+			System.out.println("");
+			String pageValue = getText(locator);
+			
+			try {
+				if (pageValue.equals("")) {
+					waitForElementToBeVisibleWithText(locator, pageValue);
+				}
+			} catch (Exception e) {
+				
+			}
 			Assert.assertTrue(validateSame(page, message));
-			/*}catch (AssertionError  e) {
-			Assert.fail(" Expected result:" + message
-					+ " Actual result:" + getText(getLocator(getResource(page))));
-		}*/
+			}catch (AssertionError  e) {
+		Assert.fail(" Expected result:" + message
+				+ " Actual result:" + getText(getLocator(getResource(page))));
 	}
+}
+	
 
 	public void verifyPartialSuccessMessage(String page, String message,
 			String locatortype) {

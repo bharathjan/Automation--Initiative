@@ -36,8 +36,11 @@ import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 
 import com.ibm.icu.text.NumberFormat;
+import com.mifos.common.TenantsUtils;
 import com.mifos.testing.framework.webdriver.LazyWebElement;
 
 //import org.jopendocument.dom.spreadsheet.MutableCell;
@@ -57,6 +60,7 @@ public class FrontPage extends MifosWebPage {
 	public boolean isaccuralsTypeTransaction = true;
 	int transactionIDIndex = 0;
 	private boolean istransactionIdIndexAssigned = true;
+	public String currentUrl ="";
 
 	// WebDriver driver = new ChromeDriver();
 
@@ -143,8 +147,13 @@ public class FrontPage extends MifosWebPage {
 
 						switch (cell2.getCellType()) {
 						case Cell.CELL_TYPE_NUMERIC:
-							int i = (int) cell2.getNumericCellValue();
-							value = String.valueOf(i);
+							if(key.contains("changecargevalue")){
+								double i = (double) cell2.getNumericCellValue();
+								value = String.valueOf(i);}
+								else{
+									int i = (int) cell2.getNumericCellValue();
+									value = String.valueOf(i);}
+							
 							// System.out.println("Cell Two ... value=" +
 							// value);
 							if (HSSFDateUtil.isCellDateFormatted(cell2)) {
@@ -283,10 +292,10 @@ public class FrontPage extends MifosWebPage {
 	public void clientNavigation() throws Throwable {
 		try {
 
-			MifosWebPage.navigateToUrl(MifosWebPage.BASE_URL + "clients");
+			MifosWebPage.navigateToUrl(TenantsUtils.getLocalTenantUrl() + "clients");
 			Thread.sleep(getResourceKey("mediumWait"));
 
-			clickButton(getResource("clickoncreateclient"));
+			clickButton(getResource("clickoncreateclient_wait"));
 			Thread.sleep(getResourceKey("mediumWait"));
 
 		} catch (Exception ioe) {
@@ -294,6 +303,46 @@ public class FrontPage extends MifosWebPage {
 		}
 	}
 
+	public void groupNavigation() throws Throwable {
+		try {
+			MifosWebPage.navigateToUrl(TenantsUtils.getLocalTenantUrl()+"creategroup");
+			Thread.sleep(getResourceKey("mediumWait"));
+
+		} catch (Exception ioe) {
+			ioe.printStackTrace();
+		}
+	}
+	
+	public void centerNavigation() throws Throwable {
+		try {
+			MifosWebPage.navigateToUrl(TenantsUtils.getLocalTenantUrl()+"createcenter");
+			Thread.sleep(getResourceKey("mediumWait"));
+
+		} catch (Exception ioe) {
+			ioe.printStackTrace();
+		}
+	}
+	
+	public void VillageNavigation() throws Throwable {
+		try {
+			MifosWebPage.navigateToUrl(TenantsUtils.getLocalTenantUrl()+"createvillage");
+			Thread.sleep(getResourceKey("mediumWait"));
+
+		} catch (Exception ioe) {
+			ioe.printStackTrace();
+		}
+	}
+	
+	
+	public void setupGroup(String clientExcelSheetPath, String excelSheetName,
+			String sheetName) throws Throwable {
+	
+			Map<String, String> clientDetailsMap = parseExcelSheet(
+					clientExcelSheetPath, excelSheetName, sheetName);
+			insertValues(clientDetailsMap);
+//			verifySuccessMessage("clickonmorebutton", "More");
+		}
+	
 	/**
 	 * Method enters values from target excel sheet into Client page
 	 * 
@@ -352,7 +401,8 @@ public class FrontPage extends MifosWebPage {
 				clientExcelSheetPath, excelSheetName, sheetName);
 		insertValues(newLoanDetailsMap);
 		Thread.sleep(getResourceKey("largeWait"));
-
+		currentUrl = getWebDriver().getCurrentUrl();
+     
 	}
 
 	/**
@@ -367,14 +417,8 @@ public class FrontPage extends MifosWebPage {
 			List<String> excelsheet, String sheetName) throws Throwable {
 		try {
 
-			MifosWebPage.navigateToUrl(MifosWebPage.BASE_URL + "products");
+			MifosWebPage.navigateToUrl(TenantsUtils.getLocalTenantUrl() + "createloanproduct");
 			Thread.sleep(getResourceKey("mediumWait"));
-
-			clickButton(getResource("clickonloanproducts"));
-			Thread.sleep(getResourceKey("mediumWait"));
-
-			clickButton(getResource("clickoncreateloanproduct"));
-			Thread.sleep(getResourceKey("extraLargeWait"));
 		} catch (Exception ioe) {
 			ioe.printStackTrace();
 		}
@@ -401,7 +445,7 @@ public class FrontPage extends MifosWebPage {
 			Thread.sleep(getResourceKey("smallWait"));
 			((JavascriptExecutor) getWebDriver())
 					.executeScript("scroll(500,0);");
-
+			verifySuccessMessage("editloanproduct", "Edit");
 			Thread.sleep(getResourceKey("mediumWait"));
 
 		} catch (Exception ioe) {
@@ -464,6 +508,8 @@ public class FrontPage extends MifosWebPage {
 
 		int sheetIndex = 0;
 		int rowCount = 0;
+		int firstrow=1;
+		int lastrow=1;
 		try {
 			FileInputStream file = new FileInputStream(new File(
 					clientExcelSheetPath + "\\" + excelSheetName));
@@ -474,15 +520,21 @@ public class FrontPage extends MifosWebPage {
 				sheetIndex = 2;
 			} else if (sheetname.equals("Repayment Schedule")) {
 				sheetIndex = 4;
-			} else if (sheetname.equals("Transactions")) {
+			} else if (sheetname.equals("Future Schedule")) {
+			    sheetIndex = 5; 
+			}
+			else if (sheetname.equals("Transactions")) {
 				sheetIndex = 6;
 			} else if (sheetname.equals("Floating Interest Rates")) {
 				sheetIndex = 10;
 			}
-			if (!isTransactionTabSelected) {
-				getWebDriver().findElement(
-						By.xpath("//a[contains(.,'" + sheetname + "')]"))
-						.click();
+			if (!isTransactionTabSelected ) {
+				
+				new WebDriverWait(getWebDriver(), 120).until(
+				        ExpectedConditions.elementToBeClickable(
+				            By.xpath("//a[contains(.,'" + sheetname + "')]")))
+				                .click();
+				
 				// Before reading transaction id need to un-check the
 				// hideAccurals
 				// button for periodic scenarios
@@ -510,8 +562,9 @@ public class FrontPage extends MifosWebPage {
 				String Accrual = null;
 				if (sheetname.equals("Summary")
 						|| sheetname.equals("Repayment Schedule")
-						|| sheetname.equals("Transactions")
-						|| sheetname.equals("Floating Interest Rates")) {
+						|| sheetname.equalsIgnoreCase("Transactions")
+						|| sheetname.equals("Floating Interest Rates")
+						|| sheetname.equals("Future Schedule")) {
 
 					if (sheetname.equals("Transactions")
 							&& !isaccuralsTypeTransaction) {
@@ -546,144 +599,639 @@ public class FrontPage extends MifosWebPage {
 						}
 					}
 
-					applicationCol = getWebDriver()
-							.findElements(
-									By.xpath("//*[@id='main']/div[2]/div/div/div/div/div/div[2]/div[3]/div[4]/div/div/div["
-											+ sheetIndex
-											+ "]/div/table/tbody/tr["
-											+ xlRowCount + "]/td"));
-					if (applicationCol.isEmpty()) {
-						Assert.fail("Could not read xpath");
-					}
-					verifyColumnDetails(xlColumnPointer, xlRowCount,
-							applicationCol, sheet, sheetname);
 					// System.out.println("Col count  " +
 					// applicationCol.size());
+					if (sheetname.equals("Transactions")) {
+						boolean rowMatchSuccess = true;
+						int failRowCnt = 0;
+						int failColCnt = 0;
+						String expected = null;
+						String actual = null;
+						double screenVal = 0.0;
+						int counter=0;
+						DateFormat dateFormat = new SimpleDateFormat(
+								"dd MMMM yyyy");
 
-				} else if (sheetname.equals("Acc_Disbursement")
-						|| sheetname.equals("Acc_Disbursement1")
-						|| sheetname.equals("Acc_Disbursement2")
-						|| sheetname.equals("Acc_Disbursement3")
-						|| sheetname.equals("Acc_RepaymentDisbursement")
-						|| sheetname.equals("Acc_Repayment")
-						|| sheetname.equals("Acc_Repayment1")
-						|| sheetname.equals("Acc_Repayment2")
-						|| sheetname.equals("Acc_Repayment3")
-						|| sheetname.equals("Acc_Periodic")
-						|| sheetname.equals("Acc_Upfront1")
-						|| sheetname.equals("Acc_Upfront2")
-						|| sheetname.equals("Acc_Upfront3")) {
-					xlColumnPointer = 6;
-					if (sheetname.equals("Acc_Periodic")
-							|| sheetname.equals("Acc_Upfront") && iteration) {
+						applicationCol = getWebDriver()
+								.findElements(
+										By.xpath("//*[@id='main']/div[2]/div/div/div/div/div/div[2]/div[3]/div[4]/div/div/div["
+												+ sheetIndex
+												+ "]/div/table/tbody/tr["
+												+ xlRowCount + "]/td"));
+							List<XLCellElement> xlRow = getColumnDetails(
+									xlColumnPointer, xlRowCount,
+									applicationCol, sheet, sheetname);
 
-						if (iteration) {
-							int result[] = verifyAccrualData(
-									clientExcelSheetPath, excelSheetName,
-									sheetname);
-							rowNo = result[0];
-							rowCount = result[1];
+							
+							
+							for (int appRow = 1; appRow <= rowCount; appRow++) {
+								
+								do{
+									counter++;
+									if(counter==22){
+										Thread.sleep(2000);
+									}
+								applicationCol = getWebDriver()
+										.findElements(
+												By.xpath("//*[@id='main']/div[2]/div/div/div/div/div/div[2]/div[3]/div[4]/div/div/div["
+														+ sheetIndex
+														+ "]/div/table/tbody/tr["
+														+ appRow + "]/td"));
+								}while(applicationCol.isEmpty() && counter<25);
+									
+								
+				if (!(applicationCol.get(2).getText().equals(dateFormat.format((Date) xlRow.get(0).value))
+				       && applicationCol.get(3).getText().equals((String) xlRow.get(1).value)
+				       && parseDecimal(applicationCol.get(4).getText())== parseDecimal((String) xlRow.get(2).value))){
+					rowMatchSuccess=false;
+									continue;
+									
+								}
+				rowMatchSuccess=true;
+								for (int xlCol = 2; xlCol < applicationCol
+										.size(); xlCol++) {
+									String a= ((String) xlRow
+											.get(1).value);
+									
+									String textVal = applicationCol.get(xlCol)
+											.getText();
 
-							iteration = false;
-						} else
-							rowNo++;
-						if (rowNo > rowCount) {
-							xlRowCount = xlRowCount - 1;
-							break;
-						}
+									switch (xlRow.get(xlCol - 2).type) {
+									case "null":
+										break;
+									case "date":
+										if (!textVal.equals(dateFormat
+												.format((Date) xlRow
+														.get(xlCol - 2).value))) {
+											rowMatchSuccess = false;
+											failRowCnt = appRow;
+											failColCnt = xlCol;
+											expected = dateFormat
+													.format((Date) xlRow
+															.get(xlCol - 2).value);
+											actual = textVal;
+										}
+										break;
+									case "decimal":
+										
+										if ((textVal != null)
+												&& !(textVal.trim().equals("")))
+											screenVal = parseDecimal(textVal);
+										if (screenVal != parseDecimal((String) xlRow
+												.get(xlCol - 2).value)) {
+											rowMatchSuccess = false;
+											failRowCnt = appRow;
+											failColCnt = xlCol;
+											expected = (String) xlRow
+													.get(xlCol - 2).value;
+											actual = textVal;
+										}
+										break;
+									case "string":
+										if (textVal.contains("$")) {
+											textVal = textVal.substring(
+													textVal.indexOf(" ") + 1,
+													textVal.length());
+										}
+										if (!textVal.equals((String) xlRow
+												.get(xlCol - 2).value)) {
+											rowMatchSuccess = false;
+											failRowCnt = appRow;
+											failColCnt = xlCol;
+											expected = (String) xlRow
+													.get(xlCol - 2).value;
+											actual = textVal;
+
+										}
+										break;
+									}
+									if (!rowMatchSuccess) {
+										Assert.fail("Tab Name:" + sheetname
+												+ " Row number:" + failRowCnt
+												+ " Column number:" + failColCnt
+												+ " Expected result:" + expected
+												+ " Actual result:" + actual);
+									}
+								
+								}
+								
+									break;
+								
+							}
+							if (!rowMatchSuccess) {
+								Assert.fail("In Tab Name:" + sheetname
+										+ " Row having values "+dateFormat.format((Date) xlRow.get(0).value)+
+										" "+(String) xlRow.get(1).value+" "+(String) xlRow.get(2).value+
+										" not found");
+							}
+
+						
+
 					}
+				
+					else{
+						applicationCol = getWebDriver()
+								.findElements(
+										By.xpath("//*[@id='main']/div[2]/div/div/div/div/div/div[2]/div[3]/div[4]/div/div/div["
+												+ sheetIndex
+												+ "]/table/tbody/tr["
+												+ xlRowCount + "]/td"));
+					verifyColumnDetails(xlColumnPointer, xlRowCount,
+							applicationCol, sheet, sheetname);
+					}
+
+				} else if (sheetname.contains("Acc_")) {
+					
+					applicationCol = getWebDriver()
+						.findElements(
+								By.xpath(".//*[@id='main']/div[2]/div/div/div/div/div/div[4]/table/tbody/tr["
+										+ xlRowCount +"]/td"));
+				xlColumnPointer = 6;
+				boolean rowMatchSuccess = true;
+				int failRowCnt = 0;
+				int failColCnt = 0;
+				String expected = null;
+				String actual = null;
+				int counter=0;
+				List<XLCellElement> xlRow =null;
+				if (sheetname.contains("Acc_Periodic")) {
+
+					
+					
+					if (iteration) {
+						int result[] = verifyAccrualData(
+								clientExcelSheetPath, excelSheetName,
+								sheetname);
+						firstrow = result[0];
+						lastrow = result[1];
+						rowCount=lastrow-firstrow+1;
+						iteration = false;
+					} else
+						firstrow++;
+					
+					
+					 xlRow = getColumnDetails(
+							xlColumnPointer, firstrow,
+							applicationCol, sheet, sheetname);
+				}
+				
+				else{
+				 xlRow = getColumnDetails(
+						xlColumnPointer, xlRowCount,
+						applicationCol, sheet, sheetname);
+				}
+				
+			
+				for (int appRow = 1; appRow <= rowCount; appRow++) {
+					
+					do{
+						counter++;
+						if(counter==22){
+							Thread.sleep(2000);
+						}
 					applicationCol = getWebDriver()
 							.findElements(
-									By.xpath(".//*[@id='main']/div[2]/div/div/div/div/div/div[4]/table/tbody/tr["+ xlRowCount + "]/td"));
-					if (applicationCol.isEmpty()) {
-						Assert.fail("Could not read xpath");
+									By.xpath(".//*[@id='main']/div[2]/div/div/div/div/div/div[4]/table/tbody/tr["
+										+ appRow + "]/td"));
+					
+					}while(applicationCol.isEmpty() && counter<25);
+						
+	if (!( applicationCol.get(6).getText().equals((String) xlRow.get(0).value)))
+	{
+		rowMatchSuccess=false;
+		continue;
+						
 					}
-					boolean rowMatchSuccess = true;
-					int failRowCnt = 0;
-					int failColCnt = 0;
-					String expected = null;
-					String actual = null;
-					for (int row = rowNo; row <= rowCount; row++) {
-						List<XLCellElement> xlRow = getColumnDetails(
-								xlColumnPointer, row, applicationCol, sheet,
-								sheetname);
-						if (!applicationCol
-								.get(xlColumnPointer)
-								.getText()
-								.equals((String) xlRow.get(xlColumnPointer - 6).value)) {
-							continue;
-						}
-						rowMatchSuccess = true;
-						for (int xlCol = 7; xlCol < applicationCol.size(); xlCol++) {
-							String textVal = applicationCol.get(xlCol)
-									.getText();
-							DateFormat dateFormat = new SimpleDateFormat(
-									"dd MMMM yyyy");
-							switch (xlRow.get(xlCol - 6).type) {
-							case "null":
-								break;
-							case "date":
-								if (!textVal
-										.equals(dateFormat.format((Date) xlRow
-												.get(xlCol - 6).value))) {
-									rowMatchSuccess = false;
-									failRowCnt = row;
-									failColCnt = xlCol;
-									expected = dateFormat.format((Date) xlRow
-											.get(xlCol - 6).value);
-									actual = textVal;
-								}
-								break;
-							case "decimal":
-								double screenVal = 0.0;
-								if ((textVal != null)
-										&& !(textVal.trim().equals("")))
-									screenVal = parseDecimal(textVal);
-								if (screenVal != parseDecimal((String) xlRow
-										.get(xlCol - 6).value)) {
-									rowMatchSuccess = false;
-									failRowCnt = row;
-									failColCnt = xlCol;
-									expected = (String) xlRow.get(xlCol - 6).value;
-									actual = textVal;
-								}
-								break;
-							case "string":
-								if (textVal.contains("$")) {
-									textVal = textVal.substring(
-											textVal.indexOf(" ") + 1,
-											textVal.length());
-								}
-								if (!textVal.equals((String) xlRow
-										.get(xlCol - 6).value)) {
-									rowMatchSuccess = false;
-									failRowCnt = row;
-									failColCnt = xlCol;
-									expected = (String) xlRow.get(xlCol - 6).value;
-									actual = textVal;
-								}
-								break;
-							}
-						}
-					}
-					if (!rowMatchSuccess) {
-						Assert.fail("Tab Name:" + sheetname + " Row number:"
-								+ failRowCnt + " Column number:" + failColCnt
-								+ " Expected result:" + expected
-								+ " Actual result:" + actual);
 
+	                rowMatchSuccess=true;
+					for (int xlCol = 7; xlCol < applicationCol.size()-2; xlCol++) {
+						String textVal = applicationCol.get(xlCol)
+								.getText();
+						DateFormat dateFormat = new SimpleDateFormat(
+								"dd MMMM yyyy");
+						switch (xlRow.get(xlCol - 6).type) {
+						case "null":
+							break;
+						case "date":
+							if (!textVal
+									.equals(dateFormat.format((Date) xlRow
+											.get(xlCol - 6).value))) {
+								rowMatchSuccess = false;
+								failRowCnt = appRow;
+								failColCnt = xlCol;
+								expected = dateFormat.format((Date) xlRow
+										.get(xlCol - 6).value);
+								actual = textVal;
+							}
+							break;
+						case "decimal":
+							double screenVal = 0.0;
+							if ((textVal != null)
+									&& !(textVal.trim().equals("")))
+								screenVal = parseDecimal(textVal);
+							if (screenVal != parseDecimal((String) xlRow
+									.get(xlCol - 6).value)) {
+								rowMatchSuccess = false;
+								failRowCnt = appRow;
+								failColCnt = xlCol;
+								expected = (String) xlRow.get(xlCol - 6).value;
+								actual = textVal;
+							}
+							break;
+						case "string":
+							if (textVal.contains("$")||textVal.contains("₹")) {
+								textVal = textVal.substring(
+										textVal.indexOf(" ") + 1,
+										textVal.length());
+							}
+							if (!textVal.equals((String) xlRow
+									.get(xlCol - 6).value)) {
+								rowMatchSuccess = false;
+								failRowCnt = appRow;
+								failColCnt = xlCol;
+								expected = (String) xlRow.get(xlCol - 6).value;
+								actual = textVal;
+								
+							}
+							break;
+						}
+						if (!rowMatchSuccess) {
+							Assert.fail("Tab Name:" + sheetname + " Row number:"
+									+ failRowCnt + " Column number:" + failColCnt
+									+ " Expected result:" + expected
+									+ " Actual result:" + actual);
+
+						}
 					}
+					break;
+				}
+				if (!rowMatchSuccess) {
+					Assert.fail("In Tab Name:" + sheetname
+							+ " Row having values "+(String) xlRow.get(0).value+" "+(String) xlRow.get(1).value+
+							" not found");
 
 				}
+
 			}
-			Thread.sleep(getResourceKey("mediumWait"));
+
+
+			}
 		} catch (FileNotFoundException fnfe) {
 			fnfe.printStackTrace();
 		} catch (NoSuchElementException e) {
-			Assert.fail(" Enable to click \n");
+			Assert.fail(" Unable to click \n");
 		}
 	}
 
+	public void verifyOtherTabData(String clientExcelSheetPath,
+			String excelSheetName, String sheetname)throws InterruptedException, IOException, ParseException 
+	{
+		int rowCount=0;
+	
+		try {
+			FileInputStream file = new FileInputStream(new File(
+					clientExcelSheetPath + "\\" + excelSheetName));
+			XSSFWorkbook workbook = new XSSFWorkbook(file);
+			XSSFSheet sheet = workbook.getSheet(sheetname);
+			rowCount = sheet.getLastRowNum() - sheet.getFirstRowNum();
+			/*if(sheetname.equals("Tranche Others"))
+			{
+			new WebDriverWait(getWebDriver(), 120).until(
+			        ExpectedConditions.elementToBeClickable(
+			            By.xpath("//a[contains(.,'Loan Tranche Details')]")))
+			                .click();
+			}*/
+			int xlColumnPointer=0;
+			List<WebElement> applicationCol = null;
+			for (int xlRowCount = 1; xlRowCount <= rowCount; xlRowCount++) {
+				if(sheetname.contains("Loan Others Details"))
+				{
+					
+					int table=1; int rou=0;
+					if(sheetname.equals("Loan Others Details3")) { table=3; rou=xlRowCount+1;
+					applicationCol=getWebDriver()
+							.findElements(
+									By.xpath("//*[@id='main']/div[2]/div/div/div/div/div/div[2]/div[2]/form/div[2]/div["+table+"]/table/tbody/tr["+rou+"]/td"));
+				
+                    List<XLCellElement> xlRow = getColumnDetails(
+                            xlColumnPointer, xlRowCount,
+                            applicationCol, sheet, sheetname);
+                 verifyTransactionData(clientExcelSheetPath,
+                            excelSheetName, sheetname,xlRow,rowCount,applicationCol);}
+					else{
+					if(sheetname.equals("Loan Others Details1")) { table=1; rou=xlRowCount; }
+					if(sheetname.equals("Loan Others Details2")) { table=2; rou=xlRowCount; }
+					if(sheetname.equals("Loan Others Details3")) { table=3; rou=xlRowCount+1;}
+					applicationCol=getWebDriver()
+							.findElements(
+									By.xpath("//*[@id='main']/div[2]/div/div/div/div/div/div[2]/div[2]/form/div[2]/div["+table+"]/table/tbody/tr["+rou+"]/td"));
+				
+                    
+				}
+				}
+				
+				if(sheetname.contains("Approve Others Details"))
+				{
+					int table=1; int rou=0;
+					if(sheetname.equals("Approve Others Details4")) { table=4; rou=xlRowCount+1;
+					applicationCol=getWebDriver()
+							.findElements(
+									By.xpath("//*[@id='main']/div[2]/div/div/div/div/div/div[2]/div[2]/form/div[3]/div[2]/div["+table+"]/table/tbody/tr["+rou+"]/td"));
+					List<XLCellElement> xlRow = getColumnDetails(
+                            xlColumnPointer, xlRowCount,
+                            applicationCol, sheet, sheetname);
+                 verifyTransactionData(clientExcelSheetPath,
+                            excelSheetName, sheetname,xlRow,rowCount,applicationCol);
+					}
+					else{
+					if(sheetname.equals("Approve Others Details1")) { table=1; rou=xlRowCount; }
+					if(sheetname.equals("Approve Others Details2")) { table=2; rou=xlRowCount; }
+					if(sheetname.equals("Approve Others Details3")) { table=3; rou=xlRowCount+1;}
+					
+					applicationCol=getWebDriver()
+							.findElements(
+									By.xpath("//*[@id='main']/div[2]/div/div/div/div/div/div[2]/div[2]/form/div[3]/div[2]/div["+table+"]/table/tbody/tr["+rou+"]/td"));
+					}
+					}
+				
+				if(sheetname.equals("Tranche Others"))
+				{
+					new WebDriverWait(getWebDriver(), 120).until(
+					        ExpectedConditions.elementToBeClickable(
+					            By.xpath("//a[contains(.,'Loan Tranche Details')]")))
+					                .click();
+					
+					int rou=xlRowCount+1;
+				
+				applicationCol=getWebDriver()
+						.findElements(
+								By.xpath("//*[@id='main']/div[2]/div/div/div/div/div/div[2]/div[3]/div[4]/div/div/div[10]/div/table[2]/tbody/tr["+rou+"]/td"));
+				
+				}
+				if(sheetname.equals("Charges Others Details"))
+				{
+					new WebDriverWait(getWebDriver(), 120).until(
+					        ExpectedConditions.elementToBeClickable(
+					        		By.xpath("//*[@id='main']/div[2]/div/div/div/div/div/div[2]/div[3]/div[4]/div/ul/li[13]/a")))
+					                .click();
+					
+					int rou=xlRowCount+1;
+				
+				applicationCol=getWebDriver()
+						.findElements(
+								By.xpath("//*[@id='main']/div[2]/div/div/div/div/div/div[2]/div[3]/div[4]/div/div/div[13]/div/table/tbody/tr["+rou+"]/td"));
+				
+				List<XLCellElement> xlRow = getColumnDetails(
+                        xlColumnPointer, xlRowCount,
+                        applicationCol, sheet, sheetname);
+				verifyChargeData(clientExcelSheetPath,
+                        excelSheetName, sheetname,xlRow,rowCount,applicationCol);
+				}
+				if(!(sheetname.equals("Loan Others Details3")||sheetname.equals("Approve Others Details4")
+						||(sheetname.equals("Charges Others Details"))))
+				{
+				verifyColumnDetails(xlColumnPointer, xlRowCount,
+				applicationCol, sheet, sheetname);
+				}
+	}
+		}catch (FileNotFoundException fnfe) {
+			fnfe.printStackTrace();
+		} catch (NoSuchElementException e) {
+			Assert.fail(" Unable to click \n");
+		}
+	}
+	
+	
+	
+    public void verifyTransactionData(String clientExcelSheetPath,
+            String excelSheetName, String sheetname,List<XLCellElement> xlRow,int rowCount,List<WebElement> applicationCol)throws InterruptedException, IOException, ParseException 
+    {
+
+    boolean rowMatchSuccess = true;
+    int failRowCnt = 0;
+    int failColCnt = 0;
+    String expected = null;
+    String actual = null;
+    double screenVal = 0.0;
+    int counter=0;
+    int xlColumnPointer=0;
+    DateFormat dateFormat = new SimpleDateFormat(
+            "dd MMMM yyyy");
+
+    try {
+        for (int appRow = 1; appRow <= rowCount; appRow++) {
+            
+            
+                int wou=appRow+1;
+                
+               if( sheetname.equals("Loan Others Details3")){
+            applicationCol = getWebDriver()
+                    .findElements(
+                            By.xpath("//*[@id='main']/div[2]/div/div/div/div/div/div[2]/div[2]/form/div[2]/div[3]/table/tbody/tr["+wou+"]/td"));
+            }
+               if( sheetname.equals("Approve Others Details4")){
+                   applicationCol = getWebDriver()
+                           .findElements(
+                                   By.xpath("//*[@id='main']/div[2]/div/div/div/div/div/div[2]/div[2]/form/div[3]/div[2]/div[4]/table/tbody/tr["+wou+"]/td"));
+                   }
+           
+               
+            
+            
+            
+if (!((applicationCol.get(0).getText().equals((String) xlRow.get(0).value)))){
+rowMatchSuccess=false;
+                continue;
+                
+            }
+rowMatchSuccess=true;
+            for (int xlCol = 1; xlCol < applicationCol
+                    .size(); xlCol++) {
+               
+                String textVal = applicationCol.get(xlCol)
+                        .getText();
+                switch (xlRow.get(xlCol).type) {
+                case "null":
+                    break;
+                case "date":
+                    if (!textVal.equals(dateFormat
+                            .format((Date) xlRow
+                                    .get(xlCol).value))) {
+                        rowMatchSuccess = false;
+                        failRowCnt = appRow;
+                        failColCnt = xlCol;
+                        expected = dateFormat
+                                .format((Date) xlRow
+                                        .get(xlCol).value);
+                        actual = textVal;
+                    }
+                    break;
+                case "decimal":
+                    
+                    if ((textVal != null)
+                            && !(textVal.trim().equals("")))
+                        screenVal = parseDecimal(textVal);
+                    if (screenVal != parseDecimal((String) xlRow
+                            .get(xlCol).value)) {
+                        rowMatchSuccess = false;
+                        failRowCnt = appRow;
+                        failColCnt = xlCol;
+                        expected = (String) xlRow
+                                .get(xlCol).value;
+                        actual = textVal;
+                    }
+                    break;
+                case "string":
+                    if (!textVal.equals((String) xlRow
+                            .get(xlCol).value)) {
+                        rowMatchSuccess = false;
+                        failRowCnt = appRow;
+                        failColCnt = xlCol;
+                        expected = (String) xlRow
+                                .get(xlCol).value;
+                        actual = textVal;
+
+                    }
+                    break;
+                }
+                if (!rowMatchSuccess) {
+                    Assert.fail("Tab Name:" + sheetname
+                            + " Row number:" + failRowCnt
+                            + " Column number:" + failColCnt
+                            + " Expected result:" + expected
+                            + " Actual result:" + actual);
+                }
+            
+            }
+            
+                break;
+            
+        }
+        if (!rowMatchSuccess) {
+            Assert.fail("In Tab Name:" + sheetname
+                    + " values not found");
+        }
+    
+    } catch (Exception e) {
+        Assert.fail(" Unable to check \n");
+    }
+    
+    }
+
+    public void verifyChargeData(String clientExcelSheetPath,
+            String excelSheetName, String sheetname,List<XLCellElement> xlRow,int rowCount,List<WebElement> applicationCol)throws InterruptedException, IOException, ParseException 
+    {
+
+    boolean rowMatchSuccess = true;
+    int failRowCnt = 0;
+    int failColCnt = 0;
+    String expected = null;
+    String actual = null;
+    double screenVal = 0.0;
+    int counter=0;
+    int xlColumnPointer=0;
+    DateFormat dateFormat = new SimpleDateFormat(
+            "dd MMMM yyyy");
+
+    try {
+        for (int appRow = 1; appRow <= rowCount; appRow++) {
+            
+            
+                int wou=appRow+1;
+                
+            
+           
+               if( sheetname.equals("Charges Others Details")){
+                   applicationCol = getWebDriver()
+                           .findElements(
+                                   By.xpath("//*[@id='main']/div[2]/div/div/div/div/div/div[2]/div[3]/div[4]/div/div/div[13]/div/table/tbody/tr["+wou+"]/td"));
+                   }
+            
+            
+            
+if (!((applicationCol.get(0).getText().equals((String) xlRow.get(0).value))
+		&&(applicationCol.get(4).getText().equals(dateFormat
+                .format((Date) xlRow.get(4).value))))){
+rowMatchSuccess=false;
+                continue;
+                
+            }
+rowMatchSuccess=true;
+            for (int xlCol = 1; xlCol < applicationCol
+                    .size(); xlCol++) {
+               
+                String textVal = applicationCol.get(xlCol)
+                        .getText();
+                switch (xlRow.get(xlCol).type) {
+                case "null":
+                    break;
+                case "date":
+                	
+                    if (!textVal.equals(dateFormat
+                            .format((Date) xlRow
+                                    .get(xlCol).value))) {
+                        rowMatchSuccess = false;
+                        failRowCnt = appRow;
+                        failColCnt = xlCol;
+                        expected = dateFormat
+                                .format((Date) xlRow
+                                        .get(xlCol).value);
+                        actual = textVal;
+                    }
+                    break;
+                case "decimal":
+                    
+                    if ((textVal != null)
+                            && !(textVal.trim().equals("")))
+                        screenVal = parseDecimal(textVal);
+                    if (screenVal != parseDecimal((String) xlRow
+                            .get(xlCol).value)) {
+                        rowMatchSuccess = false;
+                        failRowCnt = appRow;
+                        failColCnt = xlCol;
+                        expected = (String) xlRow
+                                .get(xlCol).value;
+                        actual = textVal;
+                    }
+                    break;
+                case "string":
+                    if (!textVal.equals((String) xlRow
+                            .get(xlCol).value)) {
+                        rowMatchSuccess = false;
+                        failRowCnt = appRow;
+                        failColCnt = xlCol;
+                        expected = (String) xlRow
+                                .get(xlCol).value;
+                        actual = textVal;
+
+                    }
+                    break;
+                }
+                if (!rowMatchSuccess) {
+                    Assert.fail("Tab Name:" + sheetname
+                            + " Row number:" + failRowCnt
+                            + " Column number:" + failColCnt
+                            + " Expected result:" + expected
+                            + " Actual result:" + actual);
+                }
+            
+            }
+            
+                break;
+            
+        }
+        if (!rowMatchSuccess) {
+            Assert.fail("In Tab Name:" + sheetname
+                    + " values not found");
+        }
+    
+    } catch (Exception e) {
+        Assert.fail(" Unable to check \n");
+    }
+    
+    }
+	
+	
 	private List<XLCellElement> getColumnDetails(int xlColumnPointer,
 			int xlRowCount, List<WebElement> applicationCol, XSSFSheet sheet,
 			String sheetname) throws ParseException {
@@ -722,7 +1270,7 @@ public class FrontPage extends MifosWebPage {
 			case Cell.CELL_TYPE_STRING:
 				strCellValue = sheet.getRow(xlRowCount)
 						.getCell(xlColumnPointer).getStringCellValue();
-				if (strCellValue.contains("$")) {
+				if (strCellValue.contains("₹")) {
 					strCellValue = strCellValue.substring(
 							strCellValue.indexOf(" ") + 1,
 							strCellValue.length());
@@ -824,15 +1372,22 @@ public class FrontPage extends MifosWebPage {
 								strCellValue.indexOf(" ") + 1,
 								strCellValue.length());
 						Assert.assertEquals(textVal, strCellValue);
-					} else {
-						Assert.assertEquals(textVal, strCellValue);
 					}
+					else if (textVal.contains("*") && strCellValue.contains("*")) {
+						textVal = textVal.substring(0,textVal.indexOf("*"));
+						strCellValue = strCellValue.substring(0,strCellValue.indexOf("*"));
+						Assert.assertEquals(textVal, strCellValue);
+						
+					} 
+					else {
+						Assert.assertEquals(textVal, strCellValue);;
+						}
 				} catch (Throwable e) {
 					Assert.fail("Tab Name:" + sheetname + " Row number:"
 							+ xlRowCount + " Column number:" + xlColumnPointer
 							+ " Expected result:" + strCellValue
 							+ " Actual result:" + textVal);
-				}
+                  }
 
 				break;
 			}
@@ -856,7 +1411,7 @@ public class FrontPage extends MifosWebPage {
 			String sheetName) throws Throwable {
 		// TODO Auto-generated method stub
 
-		if (sheetName.equals("Input")) {
+		if (sheetName.contains("Input")) {
 			makeRepayment(excelSheetPath, excelName, sheetName);
 		} else {
 			if (sheetName.equals("Transactions")) {
@@ -911,31 +1466,22 @@ public class FrontPage extends MifosWebPage {
 			String excelSheetName, String sheetName)
 			throws InterruptedException, IOException, ParseException, Exception {
 
-		if (sheetName.equals("Acc_Disbursement")
-				|| sheetName.equals("Acc_Disbursement1")
-				|| sheetName.equals("Acc_Disbursement2")
-				|| sheetName.equals("Acc_Disbursement3")
-				|| sheetName.equals("Acc_RepaymentDisbursement")
-				|| sheetName.equals("Acc_Repayment")
-				|| sheetName.equals("Acc_Repayment1")
-				|| sheetName.equals("Acc_Repayment2")
-				|| sheetName.equals("Acc_Repayment3")
-				|| sheetName.equals("Acc_Upfront1")
-				|| sheetName.equals("Acc_Upfront2")
-				|| sheetName.equals("Acc_Upfront3")) {
+		if ( !(sheetName.contains("Acc_Periodic"))) {
 
-			if(istransactionIdIndexAssigned){
-				transactionIDIndex = setAccuralTransactionID.size()-1;
+			if (!sheetName.contains("Upfront") && istransactionIdIndexAssigned) {
+				transactionIDIndex = setAccuralTransactionID.size() - 1;
+				istransactionIdIndexAssigned = false;
+			}
+			else if(sheetName.contains("Upfront") && !istransactionIdIndexAssigned){
+				transactionIDIndex=setAccuralTransactionType.size()-1;
+				istransactionIdIndexAssigned = true;
 			}
 			if (transactionIDIndex >= 0) {
-				istransactionIdIndexAssigned = false;
-				if (sheetName.equals("Acc_Upfront1")) {
+				
+				if (sheetName.equals("Acc_Upfront1")|| sheetName.equals("Acc_Upfront") ) {
 					setAccuralTransactionID = setAccuralTransactionType;
 				}
 				isTransactionTabSelected = true;
-				System.out
-						.println("NoN Accruals"
-								+ setAccuralTransactionID.toArray()[transactionIDIndex]);
 				getWebDriver()
 						.findElement(
 								By.xpath("//input[@placeholder='Search by transaction']"))
@@ -950,22 +1496,17 @@ public class FrontPage extends MifosWebPage {
 				Thread.sleep(getResourceKey("mediumWait"));
 				verifyLoanTabData(clientExcelSheetPath, excelSheetName,
 						sheetName);
-				Thread.sleep(getResourceKey("smallWait"));
 				clickButton(
 						getResource("frontend.accounting.searchjournal.transactionid.Parameters"),
 						"xpath");
 				Thread.sleep(getResourceKey("mediumWait"));
 			}
-
 		}
 
-		if (sheetName.equals("Acc_Periodic") || sheetName.equals("Acc_Upfront")) {
+		else{
 
-//			Iterator<String> getTransactionType = setAccuralTransactionType
-//					.iterator();
 			for (int i = setAccuralTransactionType.size()-1; i>=0; i-- ) {
 				
-//			while (getTransactionType.hasNext()) {
 				getWebDriver()
 						.findElement(
 								By.xpath("//input[@placeholder='Search by transaction']"))
@@ -997,7 +1538,7 @@ public class FrontPage extends MifosWebPage {
 	public void selectSchedularJob(String schedularJobName)
 			throws InterruptedException {
 
-		MifosWebPage.navigateToUrl(MifosWebPage.BASE_URL + "jobs");
+		MifosWebPage.navigateToUrl(TenantsUtils.getLocalTenantUrl() + "jobs");
 		Thread.sleep(getResourceKey("mediumWait"));
 
 		switch (schedularJobName) {
@@ -1005,8 +1546,9 @@ public class FrontPage extends MifosWebPage {
 		case "Periodic Accrual Transactions":
 			LazyWebElement checkPeriodic = getElement(getResource("addperiodicaccrualtransactions"));
 			if (!checkPeriodic.isSelected()) {
+				RunPeriodicAccural();
 				clickButton(getResource("addperiodicaccrualtransactions"));
-				Thread.sleep(getResourceKey("mediumWait"));
+				Thread.sleep(getResourceKey("smallWait"));
 			}
 			ishideAccuralsChecked = false;
 
@@ -1079,14 +1621,37 @@ public class FrontPage extends MifosWebPage {
 		clickButton(getResource("runSelectedJobs"));
 		Thread.sleep(getResourceKey("smallWait"));
 		clickButton(getResource("refresh"));
-		Thread.sleep(getResourceKey("mediumWait"));
+		Thread.sleep(getResourceKey("smallWait"));
 
-		((JavascriptExecutor) getWebDriver())
-				.executeScript("window.history.go(-1)");
+
+		if(!currentUrl.equals(""))
+		{
+		MifosWebPage.navigateToUrl(currentUrl);
 		Thread.sleep(getResourceKey("largeWait"));
-
+		}
 	}
 
+	public void RunPeriodicAccural() throws InterruptedException
+	{
+		
+		if (!(getElement(getResource("UpdateLoanArrearsAgeing"))).isSelected()) {
+			clickButton(getResource("UpdateLoanArrearsAgeing"));
+			Thread.sleep(getResourceKey("smallWait"));
+			clickButton(getResource("runSelectedJobs"));
+			Thread.sleep(getResourceKey("smallWait"));
+			clickButton(getResource("refresh"));
+			Thread.sleep(getResourceKey("smallWait"));
+		}
+		
+		 if (!(getElement(getResource("UpdateNonPerformingAssets"))).isSelected()) {
+			clickButton(getResource("UpdateNonPerformingAssets"));
+			Thread.sleep(getResourceKey("smallWait"));
+			clickButton(getResource("runSelectedJobs"));
+			Thread.sleep(getResourceKey("smallWait"));
+			clickButton(getResource("refresh"));
+			Thread.sleep(getResourceKey("smallWait"));
+		}
+	}
 	private int[] verifyAccrualData(String clientExcelSheetPath,
 			String excelSheetName, String sheetname)
 			throws InterruptedException, IOException, ParseException {
@@ -1153,9 +1718,19 @@ public class FrontPage extends MifosWebPage {
 				}
 
 			}
+			
+			if(!rowWithDateFound)
+			{
 			result[0] = currentRow;
 			result[1] = rowToiterate;
+			}
+			else
+			{
+				Assert.fail("In Tab Name:" + sheetname
+						+ " Row having values "+(String) applicationCol.get(2).getText()+
+						" not found");
 
+			}
 		} catch (FileNotFoundException fnfe) {
 			fnfe.printStackTrace();
 		}
@@ -1186,17 +1761,17 @@ public class FrontPage extends MifosWebPage {
 					clientExcelSheetPath, excelSheetName, sheetName);
 			insertValues(tabDetails);
 			Thread.sleep(getResourceKey("largeWait"));
-		} else if (sheetName.equals("Charges")) {
+		} else if (sheetName.contains("Charges")) {
 			getWebDriver()
 					.findElement(
-							By.xpath(".//*[@id='main']/div[3]/div/div/div/div/div/div[2]/div[3]/div[4]/div/ul/li[11]/a"))
+							By.xpath("//*[@id='main']/div[2]/div/div/div/div/div/div[2]/div[3]/div[4]/div/ul/li[13]/a"))
 					.click();
 			Thread.sleep(getResourceKey("smallWait"));
 			Map<String, String> tabDetails = parseExcelSheet(
 					clientExcelSheetPath, excelSheetName, sheetName);
 			insertValues(tabDetails);
 			Thread.sleep(getResourceKey("largeWait"));
-		} else if (sheetName.equals("Modify Transaction")) {
+		} else if (sheetName.contains("Modify Transaction")) {
 			Map<String, String> tabDetails = parseExcelSheet(
 					clientExcelSheetPath, excelSheetName, sheetName);
 			insertValues(tabDetails);
@@ -1242,7 +1817,7 @@ public class FrontPage extends MifosWebPage {
 		try {
 			Map<String, String> FloatingRatesMap = parseExcelSheet(
 					excelSheetPath, excelSheetName, sheetName);
-			MifosWebPage.navigateToUrl(MifosWebPage.BASE_URL + "floatingrates");
+			MifosWebPage.navigateToUrl(TenantsUtils.getLocalTenantUrl() + "floatingrates");
 			Thread.sleep(getResourceKey("mediumWait"));
 			insertValues(FloatingRatesMap);
 			Thread.sleep(getResourceKey("mediumWait"));
@@ -1279,5 +1854,61 @@ public class FrontPage extends MifosWebPage {
 		Thread.sleep(getResourceKey("largeWait"));
 
 	}
+	
+	
 
+	public void navigateToCurrentCenterPage(String sheetName) {
+		
+		switch (sheetName) {
+		
+		case "center":
+		
+		     value = currentCenterUrl.split("#/")[1];
+		     break;
+		case "loan":
+		
+			value = currentNewLoanUrl.split("#/")[1];
+			break;
+		}
+		MifosWebPage.navigateToUrl(TenantsUtils.getLocalTenantUrl()
+				+ value);
+		MifosWebPage.getResource("largeWait");
+		
+	}
+	
+public void verifyElementNotVisible(String arg1,String element) {
+		
+		By locator = null;
+		locator = getLocator(getResource(element));
+		List<WebElement> element1;
+		
+switch (arg1) {
+		
+		case "not visible":
+		
+		if(getWebDriver().findElement(locator).isDisplayed())
+		{
+			Assert.fail("UnExpected element is present : "+element);
+		}
+		break;
+		
+		case "visible":
+		
+			 element1 = getWebDriver().findElements(locator);
+			System.out.println(element1.size());
+			if(!(element1.size()>0)){
+				Assert.fail("Expected element is not present : "+element);
+			}
+			break;
+			
+		case "Not Displayed":
+		    element1 = getWebDriver().findElements(locator);
+			System.out.println(element1.size());
+			if(element1.size()>0){
+				Assert.fail("UnExpected element is present : "+element);
+			}
+			break;
+}
+
+}
 }

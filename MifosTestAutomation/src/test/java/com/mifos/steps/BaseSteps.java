@@ -32,7 +32,7 @@ public class BaseSteps {
 
 	/** The Constant driverClassName. */
 
-	private static final String driverClassName = "com.mifos.testing.framework.webdriver.ChromeDriverFactory"; //System.getProperty(SYS_PROP_WEB_DRIVER_FACTORY_CLASS_NAME);//// 
+	private static final String driverClassName = "com.mifos.testing.framework.webdriver.FirefoxDriverFactory"; //System.getProperty(SYS_PROP_WEB_DRIVER_FACTORY_CLASS_NAME);//// 
 
 	//FirefoxDriverFactory
 	//ChromeDriverFactory

@@ -2,6 +2,7 @@ package com.mifos.steps;
 
 import java.util.List;
 
+import com.mifos.common.TenantsUtils;
 import com.mifos.pages.FrontPage;
 import com.mifos.pages.MifosWebPage;
 
@@ -36,6 +37,33 @@ public class ClientSteps {
 		varFrontPage.verifyAndValidate(ExcelSheetPath, excelSheetName, sheetName);
 	}
 
+	@Given("^I setup the group$")
+	public void I_setup_the_group() throws Throwable {
+		//ExcelSheetPath = varFrontPage.getClientExcelSheetPath();
+		varFrontPage.groupNavigation();
+	}
+
+	@Given("^I setup the village$")
+	public void I_setup_the_village() throws Throwable {
+		varFrontPage.VillageNavigation();
+	}
+	
+	@Given("^I setup the center$")
+	public void I_setup_the_center() throws Throwable {
+		varFrontPage.centerNavigation();
+	}
+	
+	@When("^I entered the values into \"([^\"]*)\" from \"([^\"]*)\" sheet$")
+	public void I_entered_the_values_into_group_from_sheet(String type,String sheetName,
+			List<String> excelSheet) throws Throwable {
+		String excelSheetName = excelSheet.get(0).toString();
+		varFrontPage.setupGroup(ExcelSheetPath, excelSheetName, sheetName);
+		
+	}
+	
+
+
+	
 /*
  * When I set up the new create loan from "NewLoanInput" sheet	
  */
@@ -47,7 +75,7 @@ public class ClientSteps {
 				sheetName);
 	}
 	
-	@When("^I modify New Loan Account from \"([^\"]*)\" sheet$")
+	@When("^I modify New Account from \"([^\"]*)\" sheet$")
 	public void I_modify_New_Loan_Account_from_sheet(String sheetName,
 			List<String> excelSheet) throws Throwable {
 		String excelSheetName = excelSheet.get(0).toString();
@@ -67,7 +95,14 @@ public class ClientSteps {
 	public void I_verified_the_details_successfully(String sheetName,
 			List<String> excelSheet) throws Throwable {
 		String excelSheetName = excelSheet.get(0).toString();
+		if(sheetName.contains("Others"))
+		{
+			varFrontPage.verifyOtherTabData(ExcelSheetPath, excelSheetName, sheetName);
+		}
+		else
+		{
 		varFrontPage.verifyLoanTabData(ExcelSheetPath, excelSheetName, sheetName);
+		}
 	}
 	
 	@Then("^I verified the \"([^\"]*)\" details and read the transaction Id$")
@@ -76,6 +111,25 @@ public class ClientSteps {
 			String excelSheetName = excelSheet.get(0).toString();
 			varFrontPage.verifyAndReadTransactionId(ExcelSheetPath, excelSheetName, sheetName);
 	}
+	
+	
+	@Then("^I Navigate Back to Current \"([^\"]*)\" Page$")
+	public void I_Navigate_Back_to_Current_Center_Page_from_sheet(String sheetName) throws Throwable {
+		varFrontPage.navigateToCurrentCenterPage(sheetName);
+		
+	}
+	
+	@Then("^I verified the following Tabs details successfully$")
+	public void I_verified_the_following_Tabs_details_successfully(List<List<String>> excel) throws Throwable {
+
+	for (List<String> excelSheet : excel) {
+		//	varFrontPage.makeAndVerifyRepayment(ExcelSheetPath, excelSheet);
+			for (int i = 1; i < excelSheet.size(); i++) {
+				varFrontPage.verifyLoanTabData(ExcelSheetPath, excelSheet.get(0),excelSheet.get(i));	
+			}
+		}
+	}
+
 	
 	@Then("^I make repayment and verified the following tabs$")
 	public void I_make_repayment_and_verified_the_following_tabs(List<List<String>> excel)
@@ -103,8 +157,9 @@ public class ClientSteps {
 
 	@Then("^I Navigate to Accounting web page$")
 	public void I_Navigate_to_Accounting() throws Throwable {
-		MifosWebPage.navigateToUrl(MifosWebPage.BASE_URL
+		MifosWebPage.navigateToUrl(TenantsUtils.getLocalTenantUrl()
 				+ MifosWebPage.getResource("AccountingSearchJournalEntries"));
+		MifosWebPage.getResource("mediumWait");
 	}
 
 	@Then("^I search with transaction id & verified the accounting entries$")
@@ -125,15 +180,6 @@ public class ClientSteps {
 		
 	}
 	
-/*	@Then("^I \"([^\"]*)\" trance from trache tab and verified the following tabs$")
-	public void I_trance_from_trache_tab_and_verified_the_following_tabs(String arg1,
-			List<List<String>> excelSheet) throws Throwable {
-		for (List<String> option : excelSheet) {
-			for (int i = 1; i < option.size(); i++) {
-				varFrontPage.loanTabDetails(ExcelSheetPath, option.get(0),option.get(i));			
-			}
-		}
-	}*/
 	
 	@Then("^i validate and Verify from \"([^\"]*)\" sheet$")
 	public void i_validate_and_Verify_from_sheet(String sheetName,
@@ -189,6 +235,13 @@ public class ClientSteps {
 				
 			}
 		}
+		
+	}
+	
+	@Then("^I Verify Element \"([^\"]*)\"$")
+	public void I_Verify_not_visible(String arg1,List<String> excelSheet) throws Throwable {
+		String element = excelSheet.get(0).toString();
+		varFrontPage.verifyElementNotVisible(arg1,element);
 		
 	}
 
